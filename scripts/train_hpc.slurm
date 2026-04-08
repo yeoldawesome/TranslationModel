@@ -37,6 +37,10 @@ export KERAS_BACKEND=tensorflow
 export PYTHONUNBUFFERED=1
 export TF_CPP_MIN_LOG_LEVEL=2
 
+EPOCHS="${EPOCHS:-30}"
+DATASET_FILE="${DATASET_FILE:-data/spa-eng/spa.txt}"
+OUTPUT_DIR="${OUTPUT_DIR:-artifacts}"
+
 # ── Modules ──
 module purge
 module load python
@@ -54,4 +58,20 @@ python3 -m pip --no-cache-dir install -r requirements.txt
 # ── Train ──
 # Dataset should be pre-downloaded on the login node:
 #   python3 scripts/prepare_dataset.py --output-dir data/spa-eng
-srun python3 train.py --epochs 30 --dataset-file data/spa-eng/spa.txt --output-dir artifacts
+echo "========== NMT Job Configuration =========="
+echo "Job ID: $SLURM_JOB_ID"
+echo "Node list: $SLURM_JOB_NODELIST"
+echo "Partition: ${SLURM_JOB_PARTITION:-unknown}"
+echo "Account: ${SLURM_JOB_ACCOUNT:-unknown}"
+echo "Epochs: $EPOCHS"
+echo "Dataset file: $DATASET_FILE"
+echo "Output dir: $OUTPUT_DIR"
+if command -v nvidia-smi >/dev/null 2>&1; then
+  echo "GPU(s):"
+  nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv,noheader
+else
+  echo "GPU info unavailable: nvidia-smi not found"
+fi
+echo "==========================================="
+
+srun python3 train.py --epochs "$EPOCHS" --dataset-file "$DATASET_FILE" --output-dir "$OUTPUT_DIR"

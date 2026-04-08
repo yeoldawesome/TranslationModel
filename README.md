@@ -63,6 +63,10 @@ Recommended workflow:
 
    `sbatch scripts/train_hpc.slurm`
 
+Or submit + auto-follow logs + receive email notifications:
+
+`bash scripts/submit_and_watch_hpc.sh --email yournetid@iastate.edu --account s2026.se.4390.01 --partition instruction --epochs 30`
+
 Notes:
 
 - The Slurm script uses `--dataset-file data/spa-eng/spa.txt` so training does not depend on internet access from compute nodes.
