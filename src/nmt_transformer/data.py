@@ -1,5 +1,6 @@
 import pathlib
 import random
+import os
 
 import tensorflow as tf
 from keras.utils import get_file
@@ -8,13 +9,38 @@ from keras.utils import get_file
 DATASET_URL = "http://storage.googleapis.com/download.tensorflow.org/data/spa-eng.zip"
 
 
-def load_text_pairs(seed: int = 42):
+def _resolve_dataset_path(dataset_file: str | None = None) -> pathlib.Path:
+    if dataset_file:
+        explicit_path = pathlib.Path(dataset_file)
+        if explicit_path.exists():
+            return explicit_path
+        raise FileNotFoundError(f"Dataset file not found: {explicit_path}")
+
+    env_dataset_file = os.environ.get("NMT_DATASET_FILE")
+    if env_dataset_file:
+        env_path = pathlib.Path(env_dataset_file)
+        if env_path.exists():
+            return env_path
+        raise FileNotFoundError(f"Dataset file from NMT_DATASET_FILE not found: {env_path}")
+
+    local_candidates = [
+        pathlib.Path("data/spa-eng/spa.txt"),
+        pathlib.Path("data/spa.txt"),
+    ]
+    for candidate in local_candidates:
+        if candidate.exists():
+            return candidate
+
     text_zip = get_file("spa-eng.zip", origin=DATASET_URL, extract=True)
     datasets_dir = pathlib.Path(text_zip).parent
     matches = list(datasets_dir.rglob("spa.txt"))
     if not matches:
         raise FileNotFoundError(f"Could not find spa.txt under {datasets_dir}")
-    text_path = matches[0]
+    return matches[0]
+
+
+def load_text_pairs(seed: int = 42, dataset_file: str | None = None):
+    text_path = _resolve_dataset_path(dataset_file)
 
     with open(text_path, "r", encoding="utf-8") as handle:
         lines = handle.read().split("\n")[:-1]

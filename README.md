@@ -44,6 +44,31 @@ Example output format:
 - Input: I love to write.
 - Translation: [start] me encanta escribir [end]
 
+## Run on Iowa State HPC (Slurm)
+
+This repo includes an HPC submission script and optional dataset pre-download script:
+
+- `scripts/train_hpc.slurm`
+- `scripts/prepare_dataset.py`
+
+Recommended workflow:
+
+1. On a login node, download and extract dataset once:
+
+   `python scripts/prepare_dataset.py --output-dir data/spa-eng`
+
+2. Edit `scripts/train_hpc.slurm` and set your partition/account/module names for Iowa State HPC.
+
+3. Submit the job:
+
+   `sbatch scripts/train_hpc.slurm`
+
+Notes:
+
+- The Slurm script uses `--dataset-file data/spa-eng/spa.txt` so training does not depend on internet access from compute nodes.
+- Logs are written to `logs/`.
+- If your cluster requires CUDA modules for TensorFlow GPU usage, uncomment the CUDA module line in the Slurm script.
+
 ## Project structure
 
 - `train.py` - train and save model artifacts

@@ -28,6 +28,12 @@ def parse_args():
         default=0,
         help="Optional limit on total sentence pairs for quick experiments (0 = full dataset).",
     )
+    parser.add_argument(
+        "--dataset-file",
+        type=str,
+        default="",
+        help="Optional path to spa.txt (useful on HPC nodes with restricted internet).",
+    )
     return parser.parse_args()
 
 
@@ -38,7 +44,7 @@ def main():
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    pairs = load_text_pairs()
+    pairs = load_text_pairs(dataset_file=args.dataset_file or None)
     if args.limit_pairs > 0:
         pairs = pairs[: args.limit_pairs]
 

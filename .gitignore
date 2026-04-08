@@ -9,3 +9,9 @@ venv/
 # Training artifacts
 artifacts/transformer_model.keras
 artifacts/*.keras
+
+# HPC runtime outputs
+logs/
+slurm-*.out
+slurm-*.err
+.keras/
