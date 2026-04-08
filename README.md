@@ -45,6 +45,12 @@ Browser UI (select model + test in browser):
 
 This starts a local Flask server, tries to open Chrome automatically, and lets you choose any `.keras` model in `artifacts/` from a dropdown.
 
+Desktop GUI (no browser, pure Python):
+
+`python gui_translate.py`
+
+This opens a native desktop window where you can select a `.keras` model and test translations directly.
+
 Example output format:
 
 - Input: I love to write.
