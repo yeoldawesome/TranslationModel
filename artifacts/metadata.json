@@ -1,0 +1,14 @@
+{
+  "vocab_size": 15000,
+  "sequence_length": 20,
+  "batch_size": 64,
+  "embed_dim": 256,
+  "latent_dim": 2048,
+  "num_heads": 8,
+  "num_train_pairs": 1400,
+  "num_val_pairs": 300,
+  "num_test_pairs": 300,
+  "epochs": 1,
+  "final_train_accuracy": 0.11883828788995743,
+  "final_val_accuracy": 0.13579733669757843
+}
