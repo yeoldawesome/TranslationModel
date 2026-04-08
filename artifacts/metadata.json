@@ -9,6 +9,6 @@
   "num_val_pairs": 17844,
   "num_test_pairs": 17844,
   "epochs": 1,
-  "final_train_accuracy": 0.3457843065261841,
-  "final_val_accuracy": 0.48210713267326355
+  "final_train_accuracy": 0.34444186091423035,
+  "final_val_accuracy": 0.46733179688453674
 }
