@@ -11,6 +11,7 @@ EMAIL="dnlong5@iastate.edu"
 ACCOUNT="s2026.se.4390.01"
 PARTITION="instruction"
 EPOCHS="3"
+GPUS="1"
 DATASET_FILE="data/spa-eng/spa.txt"
 OUTPUT_DIR="artifacts"
 SCRIPT_PATH="scripts/train_hpc.slurm"
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --epochs)
       EPOCHS="$2"
+      shift 2
+      ;;
+    --gpus)
+      GPUS="$2"
       shift 2
       ;;
     --dataset-file)
@@ -54,6 +59,7 @@ Defaults in this file:
   ACCOUNT=s2026.se.4390.01
   PARTITION=instruction
   EPOCHS=3
+  GPUS=1
 
 Optional overrides:
   --email         Email address for Slurm notifications
@@ -62,6 +68,7 @@ Optional overrides:
 Optional:
   --partition     Slurm partition (default: instruction)
   --epochs        Number of training epochs (default: 30)
+  --gpus          Number of A100 GPUs to request (default: 1)
   --dataset-file  Path to spa.txt (default: data/spa-eng/spa.txt)
   --output-dir    Training output directory (default: artifacts)
   --script        Slurm script path (default: scripts/train_hpc.slurm)
@@ -91,16 +98,25 @@ echo "Submitting training job..."
 echo "  account: $ACCOUNT"
 echo "  partition: $PARTITION"
 echo "  epochs: $EPOCHS"
+echo "  gpus: $GPUS"
 echo "  dataset: $DATASET_FILE"
 echo "  output: $OUTPUT_DIR"
 echo "  email: $EMAIL"
 
+CPUS_PER_TASK=$((GPUS * 6))
+if [[ "$CPUS_PER_TASK" -lt 1 ]]; then
+  CPUS_PER_TASK=1
+fi
+
 submit_output=$(sbatch \
   -A "$ACCOUNT" \
   -p "$PARTITION" \
+  --gres="gpu:a100:$GPUS" \
+  --ntasks=1 \
+  --cpus-per-task="$CPUS_PER_TASK" \
   --mail-user="$EMAIL" \
   --mail-type=BEGIN,END,FAIL \
-  --export=ALL,EPOCHS="$EPOCHS",DATASET_FILE="$DATASET_FILE",OUTPUT_DIR="$OUTPUT_DIR" \
+  --export=ALL,EPOCHS="$EPOCHS",NUM_GPUS="$GPUS",DATASET_FILE="$DATASET_FILE",OUTPUT_DIR="$OUTPUT_DIR" \
   "$SCRIPT_PATH")
 
 echo "$submit_output"

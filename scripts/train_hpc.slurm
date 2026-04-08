@@ -14,7 +14,8 @@
 #SBATCH --error=logs/%x-%j.err
 #SBATCH --time=08:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=6
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=6
 #SBATCH --ntasks-per-core=1
 #SBATCH --mem=48G
 #SBATCH --gres=gpu:a100:1
@@ -40,6 +41,7 @@ export TF_CPP_MIN_LOG_LEVEL=2
 EPOCHS="${EPOCHS:-30}"
 DATASET_FILE="${DATASET_FILE:-data/spa-eng/spa.txt}"
 OUTPUT_DIR="${OUTPUT_DIR:-artifacts}"
+NUM_GPUS="${NUM_GPUS:-1}"
 
 # ── Modules ──
 module purge
@@ -64,6 +66,7 @@ echo "Node list: $SLURM_JOB_NODELIST"
 echo "Partition: ${SLURM_JOB_PARTITION:-unknown}"
 echo "Account: ${SLURM_JOB_ACCOUNT:-unknown}"
 echo "Epochs: $EPOCHS"
+echo "Requested GPUs for training: $NUM_GPUS"
 echo "Dataset file: $DATASET_FILE"
 echo "Output dir: $OUTPUT_DIR"
 if command -v nvidia-smi >/dev/null 2>&1; then
@@ -74,4 +77,4 @@ else
 fi
 echo "==========================================="
 
-srun python3 train.py --epochs "$EPOCHS" --dataset-file "$DATASET_FILE" --output-dir "$OUTPUT_DIR"
+srun python3 train.py --epochs "$EPOCHS" --dataset-file "$DATASET_FILE" --output-dir "$OUTPUT_DIR" --num-gpus "$NUM_GPUS"

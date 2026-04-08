@@ -6,6 +6,7 @@ import pathlib
 os.environ.setdefault("KERAS_BACKEND", "tensorflow")
 
 import keras
+import tensorflow as tf
 
 from src.nmt_transformer.config import NMTConfig
 from src.nmt_transformer.data import load_text_pairs, make_dataset, split_pairs
@@ -34,12 +35,48 @@ def parse_args():
         default="",
         help="Optional path to spa.txt (useful on HPC nodes with restricted internet).",
     )
+    parser.add_argument(
+        "--num-gpus",
+        type=int,
+        default=0,
+        help="Number of GPUs to use. 0 = auto (use all visible GPUs).",
+    )
     return parser.parse_args()
+
+
+def select_strategy(requested_gpus: int):
+    visible_gpus = tf.config.list_physical_devices("GPU")
+    available_gpu_count = len(visible_gpus)
+
+    if available_gpu_count == 0:
+        return tf.distribute.get_strategy(), available_gpu_count, 0
+
+    if requested_gpus > 1:
+        used_gpu_count = min(requested_gpus, available_gpu_count)
+        if used_gpu_count > 1:
+            devices = [f"/gpu:{index}" for index in range(used_gpu_count)]
+            return tf.distribute.MirroredStrategy(devices=devices), available_gpu_count, used_gpu_count
+        return tf.distribute.get_strategy(), available_gpu_count, 1
+
+    if requested_gpus == 1:
+        return tf.distribute.get_strategy(), available_gpu_count, 1
+
+    # Auto mode: if multiple GPUs are visible, use them all.
+    if available_gpu_count > 1:
+        return tf.distribute.MirroredStrategy(), available_gpu_count, available_gpu_count
+
+    return tf.distribute.get_strategy(), available_gpu_count, 1
 
 
 def main():
     args = parse_args()
     cfg = NMTConfig()
+
+    strategy, available_gpu_count, used_gpu_count = select_strategy(args.num_gpus)
+    print(f"Visible GPUs: {available_gpu_count}")
+    print(f"Requested GPUs: {args.num_gpus} (0 means auto)")
+    print(f"Using GPUs: {used_gpu_count}")
+    print(f"Distribution replicas: {strategy.num_replicas_in_sync}")
 
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -72,19 +109,20 @@ def main():
         prefetch_size=cfg.prefetch_size,
     )
 
-    model = build_transformer(
-        vocab_size=cfg.vocab_size,
-        sequence_length=cfg.sequence_length,
-        embed_dim=cfg.embed_dim,
-        latent_dim=cfg.latent_dim,
-        num_heads=cfg.num_heads,
-    )
+    with strategy.scope():
+        model = build_transformer(
+            vocab_size=cfg.vocab_size,
+            sequence_length=cfg.sequence_length,
+            embed_dim=cfg.embed_dim,
+            latent_dim=cfg.latent_dim,
+            num_heads=cfg.num_heads,
+        )
 
-    model.compile(
-        optimizer="rmsprop",
-        loss=keras.losses.SparseCategoricalCrossentropy(ignore_class=0),
-        metrics=["accuracy"],
-    )
+        model.compile(
+            optimizer="rmsprop",
+            loss=keras.losses.SparseCategoricalCrossentropy(ignore_class=0),
+            metrics=["accuracy"],
+        )
 
     history = model.fit(train_ds, validation_data=val_ds, epochs=args.epochs)
 
@@ -102,6 +140,9 @@ def main():
         "num_val_pairs": len(val_pairs),
         "num_test_pairs": len(test_pairs),
         "epochs": args.epochs,
+        "available_gpus": available_gpu_count,
+        "used_gpus": used_gpu_count,
+        "replicas": int(strategy.num_replicas_in_sync),
         "final_train_accuracy": float(history.history.get("accuracy", [0])[-1]),
         "final_val_accuracy": float(history.history.get("val_accuracy", [0])[-1]),
     }

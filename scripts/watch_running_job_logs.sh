@@ -67,7 +67,7 @@ if [[ ! -f "$log_file" ]]; then
 fi
 
 echo "Showing header:"
-head -n 40 "$log_file" || true
+head -n 120 "$log_file" || true
 
 echo "Following live log stream (Ctrl+C to stop viewing)..."
 tail -f "$log_file"
