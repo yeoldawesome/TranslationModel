@@ -47,6 +47,8 @@ EXPECTED_PYTHON="${EXPECTED_PYTHON:-3.11}"
 REQUIRE_GPU="${REQUIRE_GPU:-1}"
 AUTO_PUSH_TO_GIT="${AUTO_PUSH_TO_GIT:-1}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
+AUTO_INSTALL_GIT_LFS="${AUTO_INSTALL_GIT_LFS:-1}"
+REQUIRE_MODEL_PUSH="${REQUIRE_MODEL_PUSH:-1}"
 
 # ── Modules ──
 module purge
@@ -161,6 +163,49 @@ srun python3 train.py --epochs "$EPOCHS" --dataset-file "$DATASET_FILE" --output
 if [[ "$AUTO_PUSH_TO_GIT" == "1" ]]; then
   echo "Training complete. Preparing automatic Git push from HPC..."
 
+  ensure_git_lfs() {
+    if command -v git-lfs >/dev/null 2>&1; then
+      return 0
+    fi
+
+    mkdir -p "$HOME/.local/bin"
+    export PATH="$HOME/.local/bin:$PATH"
+    if [[ -x "$HOME/.local/bin/git-lfs" ]]; then
+      return 0
+    fi
+
+    if [[ "$AUTO_INSTALL_GIT_LFS" != "1" ]]; then
+      return 1
+    fi
+
+    echo "git-lfs not found. Attempting automatic user-local install..."
+    local lfs_version="3.7.0"
+    local lfs_archive="/tmp/git-lfs-${lfs_version}.tar.gz"
+    local lfs_extract_dir="/tmp/git-lfs-${lfs_version}"
+    local lfs_url="https://github.com/git-lfs/git-lfs/releases/download/v${lfs_version}/git-lfs-linux-amd64-v${lfs_version}.tar.gz"
+
+    if ! curl -fsSL "$lfs_url" -o "$lfs_archive"; then
+      echo "Failed to download git-lfs from $lfs_url"
+      return 1
+    fi
+
+    rm -rf "$lfs_extract_dir"
+    mkdir -p "$lfs_extract_dir"
+    if ! tar -xzf "$lfs_archive" -C "$lfs_extract_dir" --strip-components=1; then
+      echo "Failed to extract git-lfs archive."
+      return 1
+    fi
+
+    if [[ ! -x "$lfs_extract_dir/git-lfs" ]]; then
+      echo "git-lfs binary not found after extraction."
+      return 1
+    fi
+
+    cp "$lfs_extract_dir/git-lfs" "$HOME/.local/bin/git-lfs"
+    chmod +x "$HOME/.local/bin/git-lfs"
+    command -v git-lfs >/dev/null 2>&1
+  }
+
   RUN_STAMP=$(python3 - "$OUTPUT_DIR/metadata.json" <<'PY'
 import json
 import sys
@@ -177,9 +222,25 @@ PY
 )
 
   COMMIT_MSG="Model epoch ${EPOCHS} - ${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
-  bash scripts/push_artifacts_to_git.sh \
-    --branch "$GIT_BRANCH" \
-    --with-model \
-    --use-lfs \
-    --message "$COMMIT_MSG"
+
+  if ensure_git_lfs; then
+    git lfs version
+    git lfs install
+    bash scripts/push_artifacts_to_git.sh \
+      --branch "$GIT_BRANCH" \
+      --with-model \
+      --use-lfs \
+      --message "$COMMIT_MSG"
+  else
+    echo "Unable to use git-lfs automatically."
+    if [[ "$REQUIRE_MODEL_PUSH" == "1" ]]; then
+      echo "REQUIRE_MODEL_PUSH=1, failing job so model push is not silently skipped."
+      exit 1
+    fi
+
+    echo "Falling back to artifacts-only push (metadata/vocabs)."
+    bash scripts/push_artifacts_to_git.sh \
+      --branch "$GIT_BRANCH" \
+      --message "$COMMIT_MSG (artifacts-only; git-lfs unavailable)"
+  fi
 fi
