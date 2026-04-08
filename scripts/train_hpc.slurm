@@ -94,6 +94,27 @@ python3 -m pip --no-cache-dir install -r requirements.txt
 # The plain 'tensorflow' wheel can be CPU-only in some environments.
 python3 -m pip --no-cache-dir install --upgrade "tensorflow[and-cuda]>=2.16.0"
 
+SITE_PACKAGES=$(python3 -c 'import site; print(site.getsitepackages()[0])')
+CUDA_LIB_PATHS=(
+  "$SITE_PACKAGES/nvidia/cublas/lib"
+  "$SITE_PACKAGES/nvidia/cuda_runtime/lib"
+  "$SITE_PACKAGES/nvidia/cuda_nvrtc/lib"
+  "$SITE_PACKAGES/nvidia/cudnn/lib"
+  "$SITE_PACKAGES/nvidia/cufft/lib"
+  "$SITE_PACKAGES/nvidia/curand/lib"
+  "$SITE_PACKAGES/nvidia/cusolver/lib"
+  "$SITE_PACKAGES/nvidia/cusparse/lib"
+  "$SITE_PACKAGES/nvidia/nccl/lib"
+  "$SITE_PACKAGES/nvidia/nvjitlink/lib"
+)
+
+for lib_path in "${CUDA_LIB_PATHS[@]}"; do
+  if [[ -d "$lib_path" ]]; then
+    export LD_LIBRARY_PATH="$lib_path:${LD_LIBRARY_PATH:-}"
+  fi
+done
+echo "LD_LIBRARY_PATH configured for TensorFlow CUDA runtime."
+
 # Map Slurm GPU assignment into CUDA visibility when not already present.
 if [[ -z "${CUDA_VISIBLE_DEVICES:-}" && -n "${SLURM_JOB_GPUS:-}" ]]; then
   export CUDA_VISIBLE_DEVICES="$SLURM_JOB_GPUS"
