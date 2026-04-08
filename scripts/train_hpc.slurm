@@ -90,6 +90,9 @@ source "$VENV_DIR/bin/activate"
 
 python3 -m pip --no-cache-dir install --upgrade pip
 python3 -m pip --no-cache-dir install -r requirements.txt
+# Force a GPU-capable TensorFlow install on Linux compute nodes.
+# The plain 'tensorflow' wheel can be CPU-only in some environments.
+python3 -m pip --no-cache-dir install --upgrade "tensorflow[and-cuda]>=2.16.0"
 
 TF_GPU_COUNT=$(python3 -c 'import tensorflow as tf; print(len(tf.config.list_physical_devices("GPU")))')
 echo "TensorFlow GPU devices detected: $TF_GPU_COUNT"
