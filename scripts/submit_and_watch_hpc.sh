@@ -10,7 +10,7 @@ set -euo pipefail
 EMAIL="dnlong5@iastate.edu"
 ACCOUNT="s2026.se.4390.01"
 PARTITION="instruction"
-EPOCHS="30"
+EPOCHS="3"
 GPUS="2"
 DATASET_FILE="data/spa-eng/spa.txt"
 OUTPUT_DIR="artifacts"
