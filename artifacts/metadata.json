@@ -8,12 +8,12 @@
   "num_train_pairs": 83276,
   "num_val_pairs": 17844,
   "num_test_pairs": 17844,
-  "epochs": 3,
-  "trained_at": "20260408_133353",
-  "model_filename": "transformer_model_epoch3_20260408_133353.keras",
+  "epochs": 30,
+  "trained_at": "20260408_135306",
+  "model_filename": "transformer_model_epoch30_20260408_135306.keras",
   "available_gpus": 2,
   "used_gpus": 2,
   "replicas": 2,
-  "final_train_accuracy": 0.5328784584999084,
-  "final_val_accuracy": 0.5474717617034912
+  "final_train_accuracy": 0.6733278632164001,
+  "final_val_accuracy": 0.5787050127983093
 }
