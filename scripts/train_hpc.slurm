@@ -65,9 +65,18 @@ fi
 # ── Virtual environment (created once, reused on later runs) ──
 VENV_DIR="$WORKDIR/.venv"
 VENV_PY_FILE="$VENV_DIR/.python-version"
-if [[ -d "$VENV_DIR" && -f "$VENV_PY_FILE" ]]; then
-  EXISTING_VENV_PYTHON=$(cat "$VENV_PY_FILE")
-  if [[ "$EXISTING_VENV_PYTHON" != "$ACTIVE_PYTHON_VERSION" ]]; then
+if [[ -d "$VENV_DIR" ]]; then
+  EXISTING_VENV_PYTHON=""
+  if [[ -x "$VENV_DIR/bin/python3" ]]; then
+    EXISTING_VENV_PYTHON=$($VENV_DIR/bin/python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)
+  elif [[ -f "$VENV_PY_FILE" ]]; then
+    EXISTING_VENV_PYTHON=$(cat "$VENV_PY_FILE")
+  fi
+
+  if [[ -z "$EXISTING_VENV_PYTHON" ]]; then
+    echo "Could not determine existing venv Python version. Rebuilding venv."
+    rm -rf "$VENV_DIR"
+  elif [[ "$EXISTING_VENV_PYTHON" != "$ACTIVE_PYTHON_VERSION" ]]; then
     echo "Rebuilding venv: found Python $EXISTING_VENV_PYTHON, need $ACTIVE_PYTHON_VERSION"
     rm -rf "$VENV_DIR"
   fi
