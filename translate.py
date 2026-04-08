@@ -94,6 +94,12 @@ def main():
     with open(artifacts_dir / "metadata.json", "r", encoding="utf-8") as handle:
         metadata = json.load(handle)
 
+    model_filename = metadata.get("model_filename", "transformer_model.keras")
+    model_path = artifacts_dir / model_filename
+    if not model_path.exists():
+        # Backward-compatible fallback for older artifact sets.
+        model_path = artifacts_dir / "transformer_model.keras"
+
     eng_vectorization, spa_vectorization = load_vectorizers_from_vocab(
         artifacts_dir,
         vocab_size=metadata["vocab_size"],
@@ -101,7 +107,7 @@ def main():
     )
 
     model = keras.models.load_model(
-        artifacts_dir / "transformer_model.keras",
+        model_path,
         custom_objects={
             "TransformerEncoder": TransformerEncoder,
             "TransformerDecoder": TransformerDecoder,

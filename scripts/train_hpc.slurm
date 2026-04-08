@@ -45,6 +45,8 @@ NUM_GPUS="${NUM_GPUS:-1}"
 PYTHON_MODULE="${PYTHON_MODULE:-python/3.11}"
 EXPECTED_PYTHON="${EXPECTED_PYTHON:-3.11}"
 REQUIRE_GPU="${REQUIRE_GPU:-1}"
+AUTO_PUSH_TO_GIT="${AUTO_PUSH_TO_GIT:-1}"
+GIT_BRANCH="${GIT_BRANCH:-main}"
 
 # ── Modules ──
 module purge
@@ -155,3 +157,29 @@ fi
 echo "==========================================="
 
 srun python3 train.py --epochs "$EPOCHS" --dataset-file "$DATASET_FILE" --output-dir "$OUTPUT_DIR" --num-gpus "$NUM_GPUS"
+
+if [[ "$AUTO_PUSH_TO_GIT" == "1" ]]; then
+  echo "Training complete. Preparing automatic Git push from HPC..."
+
+  RUN_STAMP=$(python3 - "$OUTPUT_DIR/metadata.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+meta_path = Path(sys.argv[1])
+try:
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+except Exception:
+    print("")
+else:
+    print(meta.get("trained_at", ""))
+PY
+)
+
+  COMMIT_MSG="Model epoch ${EPOCHS} - ${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
+  bash scripts/push_artifacts_to_git.sh \
+    --branch "$GIT_BRANCH" \
+    --with-model \
+    --use-lfs \
+    --message "$COMMIT_MSG"
+fi

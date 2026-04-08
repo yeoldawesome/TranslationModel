@@ -67,11 +67,17 @@ Or submit + auto-follow logs + receive email notifications:
 
 `bash scripts/submit_and_watch_hpc.sh --email yournetid@iastate.edu --account s2026.se.4390.01 --partition instruction --epochs 30`
 
+When HPC training finishes, `scripts/train_hpc.slurm` now auto-pushes artifacts (including model) to Git by default.
+Model files are saved with epoch/date/time in the filename, for example:
+
+`artifacts/transformer_model_epoch30_20260408_211455.keras`
+
 Notes:
 
 - The Slurm script uses `--dataset-file data/spa-eng/spa.txt` so training does not depend on internet access from compute nodes.
 - Logs are written to `logs/`.
 - If your cluster requires CUDA modules for TensorFlow GPU usage, uncomment the CUDA module line in the Slurm script.
+- Auto-push uses Git LFS for model files. Ensure `git-lfs` is available on the cluster account used for training jobs.
 
 ## Project structure
 

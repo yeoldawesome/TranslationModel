@@ -1,4 +1,5 @@
 import argparse
+import datetime as dt
 import json
 import os
 import pathlib
@@ -72,6 +73,9 @@ def main():
     args = parse_args()
     cfg = NMTConfig()
 
+    run_timestamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_filename = f"transformer_model_epoch{args.epochs}_{run_timestamp}.keras"
+
     strategy, available_gpu_count, used_gpu_count = select_strategy(args.num_gpus)
     print(f"Visible GPUs: {available_gpu_count}")
     print(f"Requested GPUs: {args.num_gpus} (0 means auto)")
@@ -126,7 +130,7 @@ def main():
 
     history = model.fit(train_ds, validation_data=val_ds, epochs=args.epochs)
 
-    model.save(output_dir / "transformer_model.keras")
+    model.save(output_dir / model_filename)
     save_vocabularies(eng_vectorization, spa_vectorization, output_dir)
 
     metadata = {
@@ -140,6 +144,8 @@ def main():
         "num_val_pairs": len(val_pairs),
         "num_test_pairs": len(test_pairs),
         "epochs": args.epochs,
+        "trained_at": run_timestamp,
+        "model_filename": model_filename,
         "available_gpus": available_gpu_count,
         "used_gpus": used_gpu_count,
         "replicas": int(strategy.num_replicas_in_sync),

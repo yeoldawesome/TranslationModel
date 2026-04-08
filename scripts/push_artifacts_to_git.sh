@@ -85,7 +85,38 @@ FILES_TO_ADD=(
   "$ARTIFACTS_DIR/spa_vocab.json"
 )
 
-MODEL_FILE="$ARTIFACTS_DIR/transformer_model.keras"
+MODEL_FILE=""
+if [[ -f "$ARTIFACTS_DIR/metadata.json" ]]; then
+  METADATA_MODEL_NAME=$(python3 - "$ARTIFACTS_DIR/metadata.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+meta_path = Path(sys.argv[1])
+try:
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+except Exception:
+    print("")
+else:
+    print(meta.get("model_filename", ""))
+PY
+)
+  if [[ -n "$METADATA_MODEL_NAME" && -f "$ARTIFACTS_DIR/$METADATA_MODEL_NAME" ]]; then
+    MODEL_FILE="$ARTIFACTS_DIR/$METADATA_MODEL_NAME"
+  fi
+fi
+
+if [[ -z "$MODEL_FILE" && -f "$ARTIFACTS_DIR/transformer_model.keras" ]]; then
+  MODEL_FILE="$ARTIFACTS_DIR/transformer_model.keras"
+fi
+
+if [[ -z "$MODEL_FILE" ]]; then
+  LATEST_MODEL=$(ls -1t "$ARTIFACTS_DIR"/*.keras 2>/dev/null | head -n 1 || true)
+  if [[ -n "$LATEST_MODEL" ]]; then
+    MODEL_FILE="$LATEST_MODEL"
+  fi
+fi
+
 if [[ -f "$MODEL_FILE" ]]; then
   MODEL_SIZE_BYTES=$(wc -c < "$MODEL_FILE")
   MODEL_SIZE_MB=$((MODEL_SIZE_BYTES / 1024 / 1024))
@@ -97,7 +128,7 @@ if [[ -f "$MODEL_FILE" ]]; then
         exit 1
       fi
       git lfs install
-      git lfs track "$MODEL_FILE"
+      git lfs track "${MODEL_FILE}"
       FILES_TO_ADD+=(".gitattributes")
       FILES_TO_ADD+=("$MODEL_FILE")
       echo "Including model via Git LFS: $MODEL_FILE (${MODEL_SIZE_MB}MB)"
@@ -117,7 +148,11 @@ fi
 
 for path in "${FILES_TO_ADD[@]}"; do
   if [[ -f "$path" ]]; then
-    git add "$path"
+    if [[ "$path" == *.keras ]]; then
+      git add -f "$path"
+    else
+      git add "$path"
+    fi
   fi
 done
 
