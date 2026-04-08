@@ -94,7 +94,17 @@ python3 -m pip --no-cache-dir install -r requirements.txt
 # The plain 'tensorflow' wheel can be CPU-only in some environments.
 python3 -m pip --no-cache-dir install --upgrade "tensorflow[and-cuda]>=2.16.0"
 
+# Map Slurm GPU assignment into CUDA visibility when not already present.
+if [[ -z "${CUDA_VISIBLE_DEVICES:-}" && -n "${SLURM_JOB_GPUS:-}" ]]; then
+  export CUDA_VISIBLE_DEVICES="$SLURM_JOB_GPUS"
+fi
+
+echo "SLURM_JOB_GPUS: ${SLURM_JOB_GPUS:-unset}"
+echo "CUDA_VISIBLE_DEVICES: ${CUDA_VISIBLE_DEVICES:-unset}"
+
 TF_GPU_COUNT=$(python3 -c 'import tensorflow as tf; print(len(tf.config.list_physical_devices("GPU")))')
+TF_BUILT_WITH_CUDA=$(python3 -c 'import tensorflow as tf; print(tf.test.is_built_with_cuda())')
+echo "TensorFlow built with CUDA: $TF_BUILT_WITH_CUDA"
 echo "TensorFlow GPU devices detected: $TF_GPU_COUNT"
 if [[ "$REQUIRE_GPU" == "1" && "$TF_GPU_COUNT" -eq 0 ]]; then
   echo "TensorFlow does not see any GPUs. Aborting to avoid CPU-only training."
