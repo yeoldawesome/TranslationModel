@@ -1,1 +1,2 @@
 artifacts/transformer_model_epoch30_20260408_130750.keras filter=lfs diff=lfs merge=lfs -text
+artifacts/transformer_model_epoch3_20260408_133353.keras filter=lfs diff=lfs merge=lfs -text
