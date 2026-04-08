@@ -42,20 +42,53 @@ EPOCHS="${EPOCHS:-30}"
 DATASET_FILE="${DATASET_FILE:-data/spa-eng/spa.txt}"
 OUTPUT_DIR="${OUTPUT_DIR:-artifacts}"
 NUM_GPUS="${NUM_GPUS:-1}"
+PYTHON_MODULE="${PYTHON_MODULE:-python/3.11}"
+EXPECTED_PYTHON="${EXPECTED_PYTHON:-3.11}"
+REQUIRE_GPU="${REQUIRE_GPU:-1}"
 
 # ── Modules ──
 module purge
-module load python
+if ! module load "$PYTHON_MODULE"; then
+  echo "Failed to load module $PYTHON_MODULE"
+  exit 1
+fi
+
+ACTIVE_PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+echo "Python module requested: $PYTHON_MODULE"
+echo "Python runtime detected: $ACTIVE_PYTHON_VERSION"
+if [[ "$ACTIVE_PYTHON_VERSION" != "$EXPECTED_PYTHON" ]]; then
+  echo "Expected Python $EXPECTED_PYTHON but got $ACTIVE_PYTHON_VERSION"
+  echo "Set EXPECTED_PYTHON or fix PYTHON_MODULE before running."
+  exit 1
+fi
 
 # ── Virtual environment (created once, reused on later runs) ──
 VENV_DIR="$WORKDIR/.venv"
+VENV_PY_FILE="$VENV_DIR/.python-version"
+if [[ -d "$VENV_DIR" && -f "$VENV_PY_FILE" ]]; then
+  EXISTING_VENV_PYTHON=$(cat "$VENV_PY_FILE")
+  if [[ "$EXISTING_VENV_PYTHON" != "$ACTIVE_PYTHON_VERSION" ]]; then
+    echo "Rebuilding venv: found Python $EXISTING_VENV_PYTHON, need $ACTIVE_PYTHON_VERSION"
+    rm -rf "$VENV_DIR"
+  fi
+fi
+
 if [[ ! -d "$VENV_DIR" ]]; then
   python3 -m venv "$VENV_DIR"
+  echo "$ACTIVE_PYTHON_VERSION" > "$VENV_PY_FILE"
 fi
 source "$VENV_DIR/bin/activate"
 
 python3 -m pip --no-cache-dir install --upgrade pip
 python3 -m pip --no-cache-dir install -r requirements.txt
+
+TF_GPU_COUNT=$(python3 -c 'import tensorflow as tf; print(len(tf.config.list_physical_devices("GPU")))')
+echo "TensorFlow GPU devices detected: $TF_GPU_COUNT"
+if [[ "$REQUIRE_GPU" == "1" && "$TF_GPU_COUNT" -eq 0 ]]; then
+  echo "TensorFlow does not see any GPUs. Aborting to avoid CPU-only training."
+  echo "Try a different python module (default is python/3.11) and recreate the venv."
+  exit 1
+fi
 
 # ── Train ──
 # Dataset should be pre-downloaded on the login node:
@@ -69,6 +102,7 @@ echo "Epochs: $EPOCHS"
 echo "Requested GPUs for training: $NUM_GPUS"
 echo "Dataset file: $DATASET_FILE"
 echo "Output dir: $OUTPUT_DIR"
+echo "Require GPU: $REQUIRE_GPU"
 if command -v nvidia-smi >/dev/null 2>&1; then
   echo "GPU(s):"
   nvidia-smi --query-gpu=index,name,memory.total,driver_version --format=csv,noheader
