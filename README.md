@@ -39,6 +39,12 @@ After training:
 
 `python translate.py --sentence "I love to write."`
 
+Browser UI (select model + test in browser):
+
+`python web_translate.py --open-browser`
+
+This starts a local Flask server, tries to open Chrome automatically, and lets you choose any `.keras` model in `artifacts/` from a dropdown.
+
 Example output format:
 
 - Input: I love to write.
