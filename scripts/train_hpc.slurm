@@ -19,7 +19,7 @@
 #SBATCH --mem=48G
 #SBATCH --gres=gpu:a100:1
 #SBATCH --partition=instruction
-#SBATCH --account=CHANGE_ME
+#SBATCH --account=s2026.se.4390.01
 
 set -euo pipefail
 
