@@ -5,10 +5,10 @@
   "embed_dim": 256,
   "latent_dim": 2048,
   "num_heads": 8,
-  "num_train_pairs": 1400,
-  "num_val_pairs": 300,
-  "num_test_pairs": 300,
+  "num_train_pairs": 83276,
+  "num_val_pairs": 17844,
+  "num_test_pairs": 17844,
   "epochs": 1,
-  "final_train_accuracy": 0.11883828788995743,
-  "final_val_accuracy": 0.13579733669757843
+  "final_train_accuracy": 0.3457843065261841,
+  "final_val_accuracy": 0.48210713267326355
 }
