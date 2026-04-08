@@ -1,17 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage example:
-# ./scripts/submit_and_watch_hpc.sh \
-#   --email yournetid@iastate.edu \
-#   --account s2026.se.4390.01 \
-#   --partition instruction \
-#   --epochs 30
+# Usage examples:
+# ./scripts/submit_and_watch_hpc.sh
+# ./scripts/submit_and_watch_hpc.sh --epochs 30
 
-EMAIL=""
-ACCOUNT=""
+# Default values for one-command use.
+# CLI flags still override these values.
+EMAIL="dnlong5@iastate.edu"
+ACCOUNT="s2026.se.4390.01"
 PARTITION="instruction"
-EPOCHS="30"
+EPOCHS="3"
 DATASET_FILE="data/spa-eng/spa.txt"
 OUTPUT_DIR="artifacts"
 SCRIPT_PATH="scripts/train_hpc.slurm"
@@ -48,9 +47,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<EOF
-Usage: $0 --email <address> --account <slurm_account> [options]
+Usage: $0 [options]
 
-Required:
+Defaults in this file:
+  EMAIL=dnlong5@iastate.edu
+  ACCOUNT=s2026.se.4390.01
+  PARTITION=instruction
+  EPOCHS=3
+
+Optional overrides:
   --email         Email address for Slurm notifications
   --account       Slurm account (e.g. s2026.se.4390.01)
 
@@ -71,12 +76,12 @@ EOF
 done
 
 if [[ -z "$EMAIL" ]]; then
-  echo "Missing required --email" >&2
+  echo "EMAIL is empty. Set EMAIL in this file or pass --email." >&2
   exit 1
 fi
 
 if [[ -z "$ACCOUNT" ]]; then
-  echo "Missing required --account" >&2
+  echo "ACCOUNT is empty. Set ACCOUNT in this file or pass --account." >&2
   exit 1
 fi
 
